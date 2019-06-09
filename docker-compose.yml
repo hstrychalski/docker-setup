@@ -1,0 +1,42 @@
+version: '3'
+services:
+  db:
+    image: mysql
+    command: ["--default-authentication-plugin=mysql_native_password"]
+    ports:
+      - 6603:3306
+    environment:
+      MYSQL_ROOT_PASSWORD: "mypassword"
+      MYSQL_DATABASE: "database"
+    volumes:
+      - ./mysql/storage:/var/lib/mysql
+      - ./logs/mysql:/var/log/mysql
+  php:
+    build: php-fpm
+    env_file: ../.env
+    ports:
+      - '9002:9000'
+    volumes:
+      - ../:/var/www/symfony:cached
+      - ./logs/symfony:/var/www/symfony/var/logs:cached
+    links:
+      - db
+  nginx:
+    build: nginx
+    ports:
+      - '8080:80'
+    links:
+      - php
+    volumes:
+      - ./logs/nginx/:/var/log/nginx:cached
+
+  rabbitmq:
+      build: rabbitmq
+      hostname: rabbit_node_1
+      ports:
+        - "15672:15672"
+        - "5672:5672"
+      tty: true
+      volumes:
+        - ./rabbitmq_data:/var/lib/rabbitmq
+      command:  bash -c "sleep 10; rabbitmq-server;"
